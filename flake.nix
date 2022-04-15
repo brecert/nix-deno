@@ -2,9 +2,9 @@
   outputs = inputs:
     {
       overlay = final: prev: {
-        mkDenoDrv = { name, src, lockfile, entrypoint }@args:
+        mkDenoDrv = { name, src, lockfile, entrypoint, denoFlags ? [] }@args:
           let
-            inherit (builtins) split hashString;
+            inherit (builtins) split hashString toJSON;
             inherit (prev) lib fetchurl linkFarm writeText runCommand deno;
             inherit (prev.lib) elemAt flatten mapAttrsToList importJSON;
             inherit (prev.stdenv) mkDerivation;
@@ -19,7 +19,10 @@
               }
               {
                 name = (artifactPath url) + ".metadata.json";
-                path = writeText "metadata.json" ''{"headers": {}, "url": ""}'';
+                path = writeText "metadata.json" (toJSON {
+                  inherit url;
+                  headers = {};
+                });
               }
             ];
 
@@ -31,13 +34,16 @@
                 export DENO_DIR=`mktemp -d`
                 ln -s "${deps}" "$DENO_DIR/deps"
 
-                ${deno}/bin/deno compile --unstable --lock="$lockfile" --cached-only -o "$name" "$entrypoint"
+                ${deno}/bin/deno compile $denoFlags --lock="$lockfile" --cached-only -o "$name" "$entrypoint"
               '';
 
               installPhase = ''
                 mkdir -p "$out/bin"
                 mv "$name" "$out/bin/"
               '';
+
+              # disable stripping, which was removing the scripts from the binary 
+              fixupPhase = ":";
             } // args);
       };
     };
