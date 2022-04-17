@@ -1,6 +1,6 @@
 # Usage
 
-This required a lockfile to be generated for deno.
+This requires a lockfile to be generated for deno.
 
 ```console
 $ deno cache --lock=lockfile.json --lock-write example.ts
