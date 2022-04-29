@@ -1,13 +1,15 @@
 {
-  outputs = inputs:
+  description = "utilities for working with deno";
+
+  outputs = { self }:
     {
-      overlay = final: prev: {
-        mkDenoDrv = { name, src, lockfile, entrypoint, denoFlags ? [] }@args:
+      lib.makeDenoPlatform = pkgs: {
+        mkDenoDrv = { name, src, lockfile, entrypoint, denoFlags ? [ ] }@args:
           let
             inherit (builtins) split hashString toJSON;
-            inherit (prev) lib fetchurl linkFarm writeText runCommand deno;
-            inherit (prev.lib) elemAt flatten mapAttrsToList importJSON;
-            inherit (prev.stdenv) mkDerivation;
+            inherit (pkgs) lib fetchurl linkFarm writeText runCommand deno;
+            inherit (pkgs.lib) elemAt flatten mapAttrsToList importJSON;
+            inherit (pkgs.stdenv) mkDerivation;
 
             urlPart = url: elemAt (flatten (split "://([a-z0-9\.]*)" url));
             artifactPath = url: "${urlPart url 0}/${urlPart url 1}/${hashString "sha256" (urlPart url 2)}";
@@ -21,7 +23,7 @@
                 name = (artifactPath url) + ".metadata.json";
                 path = writeText "metadata.json" (toJSON {
                   inherit url;
-                  headers = {};
+                  headers = { };
                 });
               }
             ];
@@ -46,5 +48,7 @@
               fixupPhase = ":";
             } // args);
       };
+
+      overlay = final: pkgs: self.lib.makeDenoPlatform pkgs;
     };
 }
